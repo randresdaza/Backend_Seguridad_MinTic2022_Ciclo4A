@@ -1,4 +1,6 @@
 package proyectoRegistraduria.Controladores;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.server.ResponseStatusException;
 import proyectoRegistraduria.Modelos.Rol;
 import proyectoRegistraduria.Modelos.Usuario;
 import proyectoRegistraduria.Repositorios.RepositorioRol;
@@ -11,6 +13,7 @@ import java.io.IOException;
 import java.util.List;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import proyectoRegistraduria.Excepciones.NotFoundException;
 @CrossOrigin
 @RestController
 @RequestMapping("/usuarios")
@@ -29,36 +32,52 @@ public class ControladorUsuario {
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping
     public Usuario create(@RequestBody  Usuario infoUsuario){
+        //Se valida que correo indicado no exista
+        List<Usuario> usuarioCorreo = this.miRepositorioUsuario.findByCorreo(infoUsuario.getCorreo());
+        if (usuarioCorreo.size()>0){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"El correo indicado ya existe: "+ infoUsuario.getCorreo());
+        }
+        //si correo no existe se crea usuario
         infoUsuario.setContrasena(convertirSHA256(infoUsuario.getContrasena()));
         return this.miRepositorioUsuario.save(infoUsuario);
     }
 
+    //Mostrar detalle de un usuario
     @GetMapping("{id}")
     public Usuario show(@PathVariable String id){
+        if (!miRepositorioUsuario.existsById(id)){
+            throw new NotFoundException(("Usuario: ".concat(id.toString().concat(" no existe"))));
+        }
         Usuario usuarioActual=this.miRepositorioUsuario.findById(id).orElse(null);
         return usuarioActual;
     }
+
     @PutMapping("{id}")
     public Usuario update(@PathVariable String id,@RequestBody  Usuario infoUsuario){
-        Usuario usuarioActual=this.miRepositorioUsuario.findById(id).orElse(null);
-        if (usuarioActual!=null){
+        Usuario usuarioActual = this.miRepositorioUsuario.findById(id).orElse(null);
+        if(usuarioActual == null) {
+            throw new NotFoundException(("Usuario: ".concat(id.toString().concat(" no existe"))));
+        }
+        List<Usuario> usuarioCorreo = this.miRepositorioUsuario.findByCorreo(infoUsuario.getCorreo());
+        if (usuarioCorreo.size()>0){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"El correo indicado ya existe: "+ infoUsuario.getCorreo());
+        }
+        else{
             usuarioActual.setSeudonimo(infoUsuario.getSeudonimo());
             usuarioActual.setCorreo(infoUsuario.getCorreo());
             usuarioActual.setContrasena(convertirSHA256(infoUsuario.getContrasena()));
             return this.miRepositorioUsuario.save(usuarioActual);
-        }else{
-            return null;
         }
     }
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("{id}")
-    public void delete(@PathVariable String id){
-        Usuario usuarioActual=this.miRepositorioUsuario
-                .findById(id)
-                .orElse(null);
-        if (usuarioActual!=null){
-            this.miRepositorioUsuario.delete(usuarioActual);
+    public ResponseEntity<Object> delete(@PathVariable String id){
+        Usuario usuarioActual = this.miRepositorioUsuario.findById(id).orElse(null);
+        if(usuarioActual == null) {
+            throw new NotFoundException(("Usuario: ".concat(id.toString().concat(" no existe"))));
         }
+        this.miRepositorioUsuario.delete(usuarioActual);
+        return ResponseEntity.ok().body("Usuario: ".concat(id.toString().concat(" Eliminado correctamente")));
     }
     /**
      * Relación (1 a n) entre rol y usuario

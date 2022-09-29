@@ -2,6 +2,7 @@ package proyectoRegistraduria.Controladores;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import proyectoRegistraduria.Modelos.Permiso;
 import proyectoRegistraduria.Modelos.PermisosRoles;
@@ -10,6 +11,7 @@ import proyectoRegistraduria.Repositorios.RepositorioPermiso;
 import proyectoRegistraduria.Repositorios.RepositorioPermisosRoles;
 import proyectoRegistraduria.Repositorios.RepositorioRol;
 import java.util.List;
+import proyectoRegistraduria.Excepciones.NotFoundException;
 
 @CrossOrigin
 @RestController
@@ -53,6 +55,9 @@ public class ControladorPermisosRoles {
 
     @GetMapping("{id}")
     public PermisosRoles show(@PathVariable String id){
+        if (!miRepositorioPermisoRoles.existsById(id)){
+            throw new NotFoundException(("Permiso-Rol: ".concat(id.toString().concat(" no existe"))));
+        }
         PermisosRoles permisosRolesActual=this.miRepositorioPermisoRoles
                 .findById(id)
                 .orElse(null);
@@ -84,14 +89,16 @@ public class ControladorPermisosRoles {
 
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("{id}")
-    public void delete(@PathVariable String id){
-        PermisosRoles permisosRolesActual=this.miRepositorioPermisoRoles
-                .findById(id)
-                .orElse(null);
-        if (permisosRolesActual!=null){
-            this.miRepositorioPermisoRoles.delete(permisosRolesActual);
+    public ResponseEntity<Object> delete(@PathVariable String id){
+        PermisosRoles permisosRolesActual=this.miRepositorioPermisoRoles.findById(id).orElse(null);
+        if (permisosRolesActual==null) {
+            throw new NotFoundException(("Permiso Rol: ".concat(id.toString().concat(" no existe"))));
         }
+        this.miRepositorioPermisoRoles.delete(permisosRolesActual);
+        return ResponseEntity.ok().body("Permiso Rol: ".concat(id.toString().concat(" Eliminado correctamente")));
+
     }
+
 
     @GetMapping("validar-permiso/rol/{id_rol}")
     public PermisosRoles getPermiso(@PathVariable String id_rol,@RequestBody Permiso infoPermiso){
