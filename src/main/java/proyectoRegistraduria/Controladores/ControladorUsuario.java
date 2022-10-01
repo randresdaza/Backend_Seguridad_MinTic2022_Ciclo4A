@@ -85,7 +85,7 @@ public class ControladorUsuario {
      * @param id_rol
      * @return
      */
-    @PutMapping("{id}/rol/{id_rol}")
+    @PutMapping("/{id}/rol/{id_rol}")
     public Usuario asignarRolAUsuario(@PathVariable String id,@PathVariable String id_rol){
         Usuario usuarioActual=this.miRepositorioUsuario
                 .findById(id)
